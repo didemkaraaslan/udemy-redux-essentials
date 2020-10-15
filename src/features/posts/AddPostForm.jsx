@@ -1,11 +1,13 @@
 import React, { useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
-import { postAdded } from './postsSlice'
+import { unwrapResult } from '@reduxjs/toolkit'
+import { addNewPost } from './postsSlice'
 
 export const AddPostForm = () => {
   const [title, setTitle] = useState('')
   const [content, setContent] = useState('')
   const [userId, setUserId] = useState('')
+  const [addRequestStatus, setAddRequestStatus] = useState('idle')
 
   const dispatch = useDispatch()
 
@@ -17,17 +19,28 @@ export const AddPostForm = () => {
     </option>
   ))
 
-  // Preparing action payloads ( Hazırlama )
-  const savePost = () => {
-    if (title && content) {
-      dispatch(postAdded(title, content, userId))
+  const savePost = async () => {
+    if (canSave) {
+      try {
+        setAddRequestStatus('pending')
+        const resultAction = await dispatch(
+          addNewPost({ title, content, user: userId })
+        )
+        unwrapResult(resultAction)
 
-      setTitle('')
-      setContent('')
+        setTitle('')
+        setContent('')
+        setUserId('')
+      } catch (err) {
+        console.error('Fail ', err)
+      } finally {
+        setAddRequestStatus('idle')
+      }
     }
   }
 
-  const canSave = Boolean(title) && Boolean(content) && Boolean(userId)
+  const canSave =
+    [title, content, userId].every(Boolean) && addRequestStatus === 'idle'
 
   return (
     <section>
